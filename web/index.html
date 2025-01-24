@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive RSA Game</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Interactive RSA Game</h1>
+        <div id="game">
+            <div id="level-selection">
+                <h3>Enter Player Name</h3>
+                <input id="player-name-text" type="text" placeholder="Enter player name">
+                <h3>Select Difficulty Level</h3>
+                <button id="easy-btn" onclick="startGame('Easy', 180, 1, 999)">Easy (Length: 3 mins, Prime number range: 1 - 999)</button>
+                <button id="medium-btn" onclick="startGame('Medium', 120, 1000, 9999)">Medium (Length: 2 mins, Prime number range: 1,000 - 9,999)</button>
+                <button id="hard-btn" onclick="startGame('Hard', 60, 10000, 999999)">Hard (Length: 1 min, Prime number range: 10,000 - 999,999)</button>
+            </div>
+            <div id="game-stage" style="display: none;">
+                <div id="stage-content"></div>
+                <p id="timer"></p>
+            </div>
+        </div>
+        <div id="leaderboard">
+            <h3>Leaderboard</h3>
+            <table id="leaderboard-list"></table>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
