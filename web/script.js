@@ -1,6 +1,6 @@
-let startTime, timeLimit, primesRange, currentStage, p, q, e, d, n, ciphertext, remaining, finishTime, chosenMode;
-
+let startTime, timeLimit, primesRange, currentStage, p, q, e, d, n, ciphertext, remaining, finishTime, chosenMode, message;
 let leaderboard = window.localStorage.getItem("leaderboard");
+let leaderboardElements = document.getElementsByClassName("leaderboard-table");
 
 if (leaderboard === null) {
     leaderboard = [];
@@ -64,20 +64,15 @@ function validateStage1() {
     p = parseInt(document.getElementById("prime-p").value);
     q = parseInt(document.getElementById("prime-q").value);
 
-    if (isPrime(p) && isPrime(q) && p >= primesRange.min && q <= primesRange.max) {
+    if (isPrime(p) && isPrime(q) && p >= primesRange.min && q <= primesRange.max)
         showStage2();
-        console.log("p: " + p);
-        console.log("q: " + q);
-    } else {
+    else 
         alert("Invalid input! Please ensure both numbers are prime and within the range.");
-    }
 }
 
 function showStage2() {
     n = p * q;
-    console.log("n: " + n);
     const phi = (p - 1) * (q - 1);
-    console.log("phi: " + phi);
 
     document.getElementById("stage-content").innerHTML = `
         <h2>Stage 2: Key Generation</h2>
@@ -97,6 +92,7 @@ function validateStage2(phi) {
 
     if (gcd(e, phi) === 1) {
         d = modInverse(e, phi);
+        console.log("e: " + e);
         console.log("d: " + d);
         showStage3();
     } else {
@@ -121,8 +117,8 @@ function showStage3() {
 }
 
 function encryptMessage() {
-    const message = document.getElementById("plaintext").value;
-    console.log("message: " + message);
+    message = document.getElementById("plaintext").value;
+    // console.log("message: " + message);
     // ciphertext = [...message].map(char => (char.charCodeAt(0) ** e) % n);
     
     ciphertext = [];
@@ -131,12 +127,12 @@ function encryptMessage() {
         let messagePlaintextAscii = message.charCodeAt(i);
         let messagePlaintextAsciiEncrypted = modularExponentiation(messagePlaintextAscii, e, n);
 
-        console.log(`plaintext: ${messagePlaintext}; plaintext ascii: ${messagePlaintextAscii}; encrypted: ${messagePlaintextAsciiEncrypted}`)
+        // console.log(`plaintext: ${messagePlaintext}; plaintext ascii: ${messagePlaintextAscii}; encrypted: ${messagePlaintextAsciiEncrypted}`)
 
         ciphertext.push(messagePlaintextAsciiEncrypted);
     }
 
-    console.log("ciphertext: " + ciphertext);
+    // console.log("ciphertext: " + ciphertext);
     showStage4();
 }
 
@@ -177,7 +173,7 @@ function decryptMessage() {
         decryptedMessage += decryptedChar;
     }
 
-    if (decryptedMessage.trim()) {
+    if (decryptedMessage.trim() === message) {
         finishTime = Date.now();
         timeTaken = (finishTime - startTime) / 1000;
         const playerName = document.getElementById("player-name-text").value;
@@ -194,39 +190,90 @@ function decryptMessage() {
     }
 }
 
-function displayLeaderboard(leaderboard) {
-    document.getElementById("leaderboard-list").innerHTML = "";
+function displayLeaderboardHeader(leaderboard) {
+    for (let i = 0; i < leaderboardElements.length; i++) {
+        leaderboardElements[i].innerHTML = "";
 
-    document.getElementById("leaderboard-list").innerHTML += `<tr>
-    <th>No.</th>
-    <th>Player Name</th>
-    <th>Mode</th>
-    <th>Time Taken</th>
-    <th>Date & Time Played</th>
+        leaderboardElements[i].innerHTML += `<tr>
+        <th>No.</th>
+        <th>Player Name</th>
+        <th>Mode</th>
+        <th>Time Taken</th>
+        <th>Date & Time Played</th>
+        </tr>`;
+        
+        if (leaderboard.length === 0) {
+            leaderboardElements[i].innerHTML += `<tr>
+            <td colspan="5">No Available Data</td>
+            </tr>`;
+        }
+    }
+}
+
+function displayEmptyLeaderboard(chosenMode) {
+    document.getElementById(`leaderboard-${chosenMode}`).innerHTML += `<tr>
+    <td colspan="5">No Available Data</td>
     </tr>`;
+}
+
+function displayLeaderboardContent(leaderboard, chosenMode, iterNumber) {
+    let leaderboardText = "";
+
+    for (let i = 0; i < leaderboard.length; i++) {
+        let data = leaderboard[i];
+        let playerInfo = `<tr>
+        <td>${iterNumber}.</td>
+        <td>${data.playerName}</td>
+        <td>${data.chosenMode}</td>
+        <td>${data.timeTaken}</td>
+        <td>${data.timePlayed}</td>
+        </tr>`;
+
+        if (data.chosenMode !== chosenMode) { continue; }
+        else {
+            leaderboardText += playerInfo;
+            iterNumber++;
+        }
+    }
+
+    document.getElementById(`leaderboard-${chosenMode}`).innerHTML += leaderboardText;
+}
+
+function displayLeaderboard(leaderboard) {
+    displayLeaderboardHeader(leaderboard);
 
     if (leaderboard.length === 0) {
-        document.getElementById("leaderboard-list").innerHTML += `<tr>
-        <td colspan="5">No Available Data</td>
-        </tr>`;
-    } else {
-        // Sort the leaderboard by timeTaken in ascending order
-        leaderboard.sort((a, b) => a.timeTaken - b.timeTaken);
+        return;
+    }
 
-        let leaderboardText = "";
-        for (let i = 0; i < leaderboard.length; i++) {
-            let data = leaderboard[i];
-            let playerInfo = `<tr>
-            <td>${(i + 1)}.</td>
-            <td>${data.playerName}</td>
-            <td>${data.chosenMode}</td>
-            <td>${data.timeTaken}</td>
-            <td>${data.timePlayed}</td>
-            </tr>`;
-            leaderboardText += playerInfo;
-        }
+    let countEasy = 0, countMedium = 0, countHard = 0;
 
-        document.getElementById("leaderboard-list").innerHTML += leaderboardText;
+    for (let i = 0; i < leaderboard.length; i++) {
+        if (leaderboard[i].chosenMode === "Easy") { countEasy++; }
+        else if (leaderboard[i].chosenMode === "Medium") { countMedium++; }
+        else { countHard++; }
+    }
+
+    // Sort the leaderboard by timeTaken in ascending order
+    leaderboard.sort((a, b) => a.timeTaken - b.timeTaken);
+
+    if (countEasy === 0) {
+        displayEmptyLeaderboard("Easy");
+    } else if (countEasy > 0) {
+        let iterEasy = 1;
+        displayLeaderboardContent(leaderboard, "Easy", iterEasy);
+    }
+    if (countMedium === 0) {
+        displayEmptyLeaderboard("Medium");
+    } else if (countMedium > 0) {
+        let iterMedium = 1;
+        displayLeaderboardContent(leaderboard, "Medium", iterMedium);
+    }
+    if (countHard === 0) {
+        displayEmptyLeaderboard("Hard");
+    } else if (countHard > 0) {
+        let iterHard = 1;
+        displayLeaderboardContent(leaderboard, "Hard", iterHard);
     }
 }
 
