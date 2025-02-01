@@ -50,12 +50,47 @@ function isPrime(num) {
     return true;
 }
 
+// Function to generate prime numbers using the Sieve of Eratosthenes
+const getPrimes = (min, max) => {
+    const sieve = Array(max + 1).fill(true);
+    sieve[0] = sieve[1] = false; // 0 and 1 are not prime
+
+    for (let i = 2; i * i <= max; i++) {
+        if (sieve[i]) {
+            for (let j = i * i; j <= max; j += i) {
+                sieve[j] = false;
+            }
+        }
+    }
+
+    return sieve.map((isPrime, num) => (isPrime ? num : null)).filter(Boolean).filter(n => n >= min);
+};
+
+// Function to get a random prime from the generated list
+const getRandPrime = (min, max, inputId) => {
+    const primes = getPrimes(min, max);
+    if (primes.length === 0) return; // Edge case: No primes found
+    document.getElementById(inputId).value = primes[Math.floor(Math.random() * primes.length)];
+};
+
+// Function to display Stage 1 UI
 function showStage1() {
     document.getElementById("stage-content").innerHTML = `
         <h2>Stage 1: Prime Number Selection</h2>
         <p>Enter two prime numbers between ${primesRange.min} and ${primesRange.max}:</p>
+        
         <input id="prime-p" type="number" placeholder="Enter prime p">
+        <button class="game-btn" onclick="getRandPrime(${primesRange.min}, ${primesRange.max}, 'prime-p')">
+            Generate Random 'p'
+        </button>
+        <br>
+
         <input id="prime-q" type="number" placeholder="Enter prime q">
+        <button class="game-btn" onclick="getRandPrime(${primesRange.min}, ${primesRange.max}, 'prime-q')">
+            Generate Random 'q'
+        </button>
+        <br>
+
         <button class="game-btn" onclick="validateStage1()">Submit</button>
     `;
 }
@@ -66,7 +101,7 @@ function validateStage1() {
 
     if (isPrime(p) && isPrime(q) && p >= primesRange.min && q <= primesRange.max)
         showStage2();
-    else 
+    else
         alert("Invalid input! Please ensure both numbers are prime and within the range.");
 }
 
@@ -120,7 +155,7 @@ function encryptMessage() {
     message = document.getElementById("plaintext").value;
     // console.log("message: " + message);
     // ciphertext = [...message].map(char => (char.charCodeAt(0) ** e) % n);
-    
+
     ciphertext = [];
     for (let i = 0; i < message.length; i++) {
         let messagePlaintext = message.charAt(i);
@@ -177,12 +212,12 @@ function decryptMessage() {
         finishTime = Date.now();
         timeTaken = (finishTime - startTime) / 1000;
         const playerName = document.getElementById("player-name-text").value;
-        
+
         alert(`
             Game Finished!\n
             Decrypted Message: ${decryptedMessage}
         `);
-        
+
         addToLeaderboard(playerName, chosenMode, timeTaken.toFixed(2), getCurrentDateTime());
         resetGame();
     } else {
@@ -201,7 +236,7 @@ function displayLeaderboardHeader(leaderboard) {
         <th>Time Taken</th>
         <th>Date & Time Played</th>
         </tr>`;
-        
+
         if (leaderboard.length === 0) {
             leaderboardElements[i].innerHTML += `<tr>
             <td colspan="5">No Available Data</td>
@@ -279,10 +314,10 @@ function displayLeaderboard(leaderboard) {
 
 function addToLeaderboard(playerName, chosenMode, timeTaken, currentDateTime) {
     leaderboard.push({
-        playerName  : playerName,
-        chosenMode  : chosenMode,
-        timeTaken   : timeTaken,
-        timePlayed  : currentDateTime
+        playerName: playerName,
+        chosenMode: chosenMode,
+        timeTaken: timeTaken,
+        timePlayed: currentDateTime
     });
 
     window.localStorage.setItem("leaderboard", JSON.stringify(leaderboard));
