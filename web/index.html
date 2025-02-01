@@ -1,12 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Interactive RSA Game</title>
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
+    
     <div class="container">
         <h1>Interactive RSA Game</h1>
         <div id="game">
@@ -24,10 +27,18 @@
             </div>
         </div>
         <div id="leaderboard">
-            <h3>Leaderboard</h3>
-            <table id="leaderboard-list"></table>
+            <h3>Leaderboard (Easy)</h3>
+            <table class="leaderboard-table" id="leaderboard-Easy"></table>
+
+            <h3>Leaderboard (Medium)</h3>
+            <table class="leaderboard-table" id="leaderboard-Medium"></table>
+
+            <h3>Leaderboard (Hard)</h3>
+            <table class="leaderboard-table" id="leaderboard-Hard"></table>
         </div>
     </div>
+
     <script src="script.js"></script>
+
 </body>
 </html>
