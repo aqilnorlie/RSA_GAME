@@ -75,17 +75,26 @@ const getRandPrime = (min, max, inputId) => {
 
 // Function to display Stage 1 UI
 function showStage1() {
+    const primes = getPrimes(primesRange.min, primesRange.max);
+    const primeOptions = primes.map(prime => `<option value="${prime}">${prime}</option>`).join('');
+    
     document.getElementById("stage-content").innerHTML = `
         <h2>Stage 1: Prime Number Selection</h2>
         <p>Enter two prime numbers between ${primesRange.min} and ${primesRange.max}:</p>
-        
-        <input id="prime-p" type="number" placeholder="Enter prime p">
+
+        <select id="prime-p" type="number" placeholder="Choose prime p">
+            <option value="" disabled selected>Select prime p</option>
+            ${primeOptions}
+        </select>
         <button class="game-btn" onclick="getRandPrime(${primesRange.min}, ${primesRange.max}, 'prime-p')">
             Generate Random 'p'
         </button>
         <br>
 
-        <input id="prime-q" type="number" placeholder="Enter prime q">
+        <select id="prime-q" type="number" placeholder="Choose prime q">
+            <option value="" disabled selected>Select prime q</option>
+            ${primeOptions}
+        </select>
         <button class="game-btn" onclick="getRandPrime(${primesRange.min}, ${primesRange.max}, 'prime-q')">
             Generate Random 'q'
         </button>
@@ -105,17 +114,46 @@ function validateStage1() {
         alert("Invalid input! Please ensure both numbers are prime and within the range.");
 }
 
+
 function showStage2() {
     n = p * q;
     const phi = (p - 1) * (q - 1);
+
+    const modInverse = (e, phi) => {
+        let [a, m] = [e, phi], [m0, x0, x1] = [m, 0, 1];
+        while (a > 1) {
+            let q = Math.floor(a / m);
+            [m, a] = [a % m, m];
+            [x0, x1] = [x1 - q * x0, x0];
+        }
+        return x1 < 0 ? x1 + m0 : x1;
+    };
+    
+    const eOptions = Array.from({ length: phi - 2 }, (_, i) => i + 2)
+        .filter(e => {
+            if (gcd(e, phi) !== 1) return false;
+            // Try to calculate d and ensure it's valid
+            const potentialD = modInverse(e, phi);
+            return (e * potentialD) % phi === 1;
+        })
+        .map(e => `<option value="${e}">${e}</option>`)
+        .join('');
 
     document.getElementById("stage-content").innerHTML = `
         <h2>Stage 2: Key Generation</h2>
         <p>n = ${n}, ϕ(n) = ${phi}</p>
         <p>Select a public key exponent (e) such that 1 < e < ϕ(n) and gcd(e, ϕ(n)) = 1:</p>
-        <input id="public-e" type="number" placeholder="Enter public key exponent e">
+        
+        <select id="public-e">
+            <option value="" disabled selected>Select public key exponent e</option>
+            ${eOptions}
+        </select>
+        <br>
+        
         <button class="game-btn" onclick="validateStage2(${phi})">Submit</button>
     `;
+
+    
 }
 
 function gcd(a, b) {
@@ -171,12 +209,66 @@ function encryptMessage() {
     showStage4();
 }
 
+
+function calculateValidPrivateKeys() {
+    const phi = (p - 1) * (q - 1);
+    let validKeys = new Set();
+    
+    // Add the correct private key
+    validKeys.add(d);
+    
+    // Calculate a range around the correct key
+    const rangeStart = Math.max(2, d - 50);
+    const rangeEnd = d + 50;
+    
+    // Generate 20-30 plausible but incorrect options near the correct key
+    const numberOfOptions = 20 + Math.floor(Math.random() * 11); // Random number between 20 and 30
+    
+    while (validKeys.size < numberOfOptions) {
+        // Generate a number close to d
+        let offset = Math.floor(Math.random() * 101) - 50; // Random number between -50 and 50
+        let candidateKey = d + offset;
+        
+        // Ensure the candidate key is valid
+        if (candidateKey > 1 && 
+            candidateKey < phi && 
+            candidateKey !== d && 
+            gcd(candidateKey, phi) === 1) {
+            validKeys.add(candidateKey);
+        }
+        
+        // If we're struggling to find nearby values, expand the search
+        if (validKeys.size < 3 && offset > 200) {
+            offset = Math.floor(Math.random() * 401) - 200; // Expand to ±200
+            candidateKey = d + offset;
+            if (candidateKey > 1 && 
+                candidateKey < phi && 
+                candidateKey !== d && 
+                gcd(candidateKey, phi) === 1) {
+                validKeys.add(candidateKey);
+            }
+        }
+    }
+
+    // Convert Set to Array and shuffle
+    return Array.from(validKeys).sort(() => Math.random() - 0.5);
+}
+
 function showStage4() {
+    const validKeys = calculateValidPrivateKeys();
+    
+    let dropdownOptions = validKeys.map(key => 
+        `<option value="${key}">${key}</option>`
+    ).join('');
+
     document.getElementById("stage-content").innerHTML = `
         <h2>Stage 4: Decryption</h2>
         <p>Encrypted message: ${ciphertext.join(" ")}</p>
-        <p>Enter your private key (d):</p>
-        <input id="private-d" type="number" placeholder="Enter private key">
+        <p>Select your private key (d):</p>
+        <select id="private-d">
+            <option value="" disabled selected>Select private key d</option>
+            ${dropdownOptions}
+        </select>
         <button class="game-btn" onclick="decryptMessage()">Decrypt</button>
     `;
 }
@@ -199,12 +291,16 @@ function modularExponentiation(base, exponent, modulus) {
 
 function decryptMessage() {
     const userD = parseInt(document.getElementById("private-d").value);
+    
+    if (!userD) {
+        alert("Please select a private key!");
+        return;
+    }
 
     let decryptedMessage = "";
     for (let i = 0; i < ciphertext.length; i++) {
         let decryptedAscii = modularExponentiation(ciphertext[i], userD, n);
         let decryptedChar = String.fromCharCode(decryptedAscii);
-
         decryptedMessage += decryptedChar;
     }
 
