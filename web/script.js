@@ -94,17 +94,26 @@ const getRandPrime = (min, max, inputId) => {
 
 // Function to display Stage 1 UI
 function showStage1() {
+    const primes = getPrimes(primesRange.min, primesRange.max);
+    const primeOptions = primes.map(prime => `<option value="${prime}">${prime}</option>`).join('');
+    
     document.getElementById("stage-content").innerHTML = `
         <h2>Stage 1: Prime Number Selection</h2>
         <p>Enter two prime numbers between ${primesRange.min} and ${primesRange.max}:</p>
-        
-        <input id="prime-p" type="number" placeholder="Enter prime p">
+
+        <select id="prime-p" type="number" placeholder="Choose prime p">
+            <option value="" disabled selected>Select prime p</option>
+            ${primeOptions}
+        </select>
         <button class="game-btn" onclick="getRandPrime(${primesRange.min}, ${primesRange.max}, 'prime-p')">
             Generate Random 'p'
         </button>
         <br>
 
-        <input id="prime-q" type="number" placeholder="Enter prime q">
+        <select id="prime-q" type="number" placeholder="Choose prime q">
+            <option value="" disabled selected>Select prime q</option>
+            ${primeOptions}
+        </select>
         <button class="game-btn" onclick="getRandPrime(${primesRange.min}, ${primesRange.max}, 'prime-q')">
             Generate Random 'q'
         </button>
@@ -290,6 +299,12 @@ function showDValue() {
 }
 
 function showStage4() {
+    const validKeys = calculateValidPrivateKeys();
+    
+    let dropdownOptions = validKeys.map(key => 
+        `<option value="${key}">${key}</option>`
+    ).join('');
+
     document.getElementById("stage-content").innerHTML = `
         <h2>Stage 4: Decryption</h2>
         <p>Encrypted message: ${ciphertext.join(" ")}</p>
@@ -330,7 +345,6 @@ function decryptMessage() {
     for (let i = 0; i < ciphertext.length; i++) {
         let decryptedAscii = modularExponentiation(ciphertext[i], userD, n);
         let decryptedChar = String.fromCharCode(decryptedAscii);
-
         decryptedMessage += decryptedChar;
     }
 
