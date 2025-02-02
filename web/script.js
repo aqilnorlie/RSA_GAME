@@ -1,4 +1,8 @@
-let startTime, timeLimit, primesRange, currentStage, p, q, e, d, n, ciphertext, remaining, finishTime, chosenMode, message;
+let startTime, timeLimit, primesRange, currentStage;
+let p, q, e, d, n, phi;
+let ciphertext, remaining, finishTime, chosenMode, message;
+let lastSelectedPrime = null;
+
 let leaderboard = window.localStorage.getItem("leaderboard");
 let leaderboardElements = document.getElementsByClassName("leaderboard-table");
 
@@ -10,10 +14,12 @@ if (leaderboard === null) {
     displayLeaderboard(leaderboard);
 }
 
+document.getElementById("player-name-text").focus();
+
 function startGame(mode, limit, min, max) {
     let playerName = document.getElementById("player-name-text").value;
-    if (playerName == null || playerName == "") {
-        alert("Please enter player name");
+    if (playerName === null || playerName === "") {
+        alert("Please enter player name.");
         return;
     }
 
@@ -27,6 +33,7 @@ function startGame(mode, limit, min, max) {
     document.getElementById("leaderboard").style.display = "none";
     document.getElementById("game-stage").style.display = "block";
     updateTimer();
+    document.getElementById("prime-p").focus();
 }
 
 function updateTimer() {
@@ -70,7 +77,19 @@ const getPrimes = (min, max) => {
 const getRandPrime = (min, max, inputId) => {
     const primes = getPrimes(min, max);
     if (primes.length === 0) return; // Edge case: No primes found
-    document.getElementById(inputId).value = primes[Math.floor(Math.random() * primes.length)];
+
+    // Filter out the last selected prime if it exists
+    const availablePrimes = lastSelectedPrime ? primes.filter(prime => prime !== lastSelectedPrime) : primes;
+
+    // If there are no available primes left, just return
+    if (availablePrimes.length === 0) return;
+
+    // Select a random prime from the available primes
+    const selectedPrime = availablePrimes[Math.floor(Math.random() * availablePrimes.length)];
+    document.getElementById(inputId).value = selectedPrime;
+
+    // Update the last selected prime
+    lastSelectedPrime = selectedPrime;
 };
 
 // Function to display Stage 1 UI
@@ -96,40 +115,112 @@ function showStage1() {
 }
 
 function validateStage1() {
-    p = parseInt(document.getElementById("prime-p").value);
-    q = parseInt(document.getElementById("prime-q").value);
+    let pInput = document.getElementById("prime-p").value;
+    let qInput = document.getElementById("prime-q").value;
 
-    if (isPrime(p) && isPrime(q) && p >= primesRange.min && q <= primesRange.max)
+    if (pInput === null || pInput === "" || qInput === null || qInput === "") {
+        alert("Plese enter values for 'p' and 'q'.");
+        return;
+    }
+
+    p = parseInt(pInput);
+    q = parseInt(qInput);
+
+    if (isPrime(p) && isPrime(q) && p >= primesRange.min && q <= primesRange.max && p !== q) {
         showStage2();
-    else
-        alert("Invalid input! Please ensure both numbers are prime and within the range.");
+        document.getElementById("public-e").focus();
+    }
+    else {
+        alert(`
+            Invalid input!
+            Please ensure that both numbers 'p' and 'q' are:
+            - prime numbers
+            - within the set range
+            - different from each other
+        `);
+        return;
+    }
 }
 
 function showStage2() {
     n = p * q;
-    const phi = (p - 1) * (q - 1);
+    phi = (p - 1) * (q - 1);
 
     document.getElementById("stage-content").innerHTML = `
         <h2>Stage 2: Key Generation</h2>
         <p>n = ${n}, ϕ(n) = ${phi}</p>
         <p>Select a public key exponent (e) such that 1 < e < ϕ(n) and gcd(e, ϕ(n)) = 1:</p>
-        <input id="public-e" type="number" placeholder="Enter public key exponent e">
-        <button class="game-btn" onclick="validateStage2(${phi})">Submit</button>
+        <label for="public-e">Enter Public Key (e):</label>
+        <input id="public-e" type="number" list="valid-e-values">
+        <datalist id="valid-e-values"></datalist>
+        <button class="game-btn" onclick="validateStage2()">Submit</button>
     `;
+
+    populateEDataList(phi);
+}
+
+function getValidEs(phiN) {
+    let validEs = [];
+    for (let eVal = 2; validEs.length < 15 && eVal < phiN; eVal++) {
+        if (gcd(eVal, phiN) === 1) {
+            validEs.push(eVal);
+        }
+    }
+    return validEs;
+}
+
+function populateEDataList(phiN) {
+    const eDataList = document.getElementById("valid-e-values");
+    eDataList.innerHTML = "";
+
+    const validEs = getValidEs(phiN);
+    validEs.forEach(eVal => {
+        let option = document.createElement("option");
+        option.value = eVal;
+        eDataList.appendChild(option);
+    });
 }
 
 function gcd(a, b) {
     return b === 0 ? a : gcd(b, a % b);
 }
 
-function validateStage2(phi) {
-    e = parseInt(document.getElementById("public-e").value);
+function find_d() {
+    let result = 0;
+    let condition = true;
+    let time = 1;
+
+    while (condition) {
+        result = (phi * time) + 1;
+        result = result / e;
+        let resultInt = Number(result);
+
+        if (Number.isInteger(resultInt)) {
+            condition = false;
+        } else {
+            time += 1; // Increment time
+        }
+    }
+    return result;
+}
+
+function validateStage2() {
+    let eInput = document.getElementById("public-e").value;
+
+    if (eInput === null || eInput === "") {
+        alert("Plese enter 'e'.");
+        return;
+    }
+
+    e = parseInt(eInput);
 
     if (gcd(e, phi) === 1) {
         d = modInverse(e, phi);
+        // d = find_d()
         console.log("e: " + e);
         console.log("d: " + d);
         showStage3();
+        document.getElementById("plaintext").focus();
     } else {
         alert("Invalid input! Ensure gcd(e, ϕ(n)) = 1.");
     }
@@ -153,22 +244,49 @@ function showStage3() {
 
 function encryptMessage() {
     message = document.getElementById("plaintext").value;
-    // console.log("message: " + message);
-    // ciphertext = [...message].map(char => (char.charCodeAt(0) ** e) % n);
-
+    
+    if (message === null || message === "") {
+        alert("Plese enter the message to be encrypted.");
+        return;
+    }
+    
     ciphertext = [];
     for (let i = 0; i < message.length; i++) {
         let messagePlaintext = message.charAt(i);
         let messagePlaintextAscii = message.charCodeAt(i);
         let messagePlaintextAsciiEncrypted = modularExponentiation(messagePlaintextAscii, e, n);
 
-        // console.log(`plaintext: ${messagePlaintext}; plaintext ascii: ${messagePlaintextAscii}; encrypted: ${messagePlaintextAsciiEncrypted}`)
-
         ciphertext.push(messagePlaintextAsciiEncrypted);
     }
-
-    // console.log("ciphertext: " + ciphertext);
     showStage4();
+    document.getElementById("private-d").focus();
+}
+
+function showDValue() {
+    // Set the value of 'd' in the modal
+    document.getElementById("d-value").innerText = `Value of private key 'd' for the chosen public key 'e' (${e}): ${d}`;
+
+    // Show the modal and overlay
+    document.getElementById("modal").style.display = "block";
+    document.getElementById("overlay").style.display = "block";
+
+    // Copy to clipboard functionality
+    document.getElementById("copy-button").onclick = function() {
+        // Create a temporary textarea element to hold the value
+        const textarea = document.createElement("textarea");
+        textarea.value = d; // Set the value to 'd'
+        document.body.appendChild(textarea);
+        textarea.select(); // Select the text
+        document.execCommand("copy"); // Copy the text to clipboard
+        document.body.removeChild(textarea); // Remove the textarea
+
+        alert("Value copied to clipboard!"); // Notify the user
+
+        document.getElementById("modal").style.display = "none";
+        document.getElementById("overlay").style.display = "none";
+
+        document.getElementById("private-d").focus();
+    };
 }
 
 function showStage4() {
@@ -177,6 +295,7 @@ function showStage4() {
         <p>Encrypted message: ${ciphertext.join(" ")}</p>
         <p>Enter your private key (d):</p>
         <input id="private-d" type="number" placeholder="Enter private key">
+        <button id="show-d-btn" class="game-btn" onclick="showDValue()">Hint: Show 'd'</button>
         <button class="game-btn" onclick="decryptMessage()">Decrypt</button>
     `;
 }
@@ -198,7 +317,14 @@ function modularExponentiation(base, exponent, modulus) {
 }
 
 function decryptMessage() {
-    const userD = parseInt(document.getElementById("private-d").value);
+    let dInput = document.getElementById("private-d").value;
+
+    if (dInput === null || dInput === "") {
+        alert("Plese enter the value of 'd'.");
+        return;
+    }
+    
+    let userD = parseInt(dInput);
 
     let decryptedMessage = "";
     for (let i = 0; i < ciphertext.length; i++) {
@@ -208,13 +334,18 @@ function decryptMessage() {
         decryptedMessage += decryptedChar;
     }
 
-    if (decryptedMessage.trim() === message) {
+    let trimmedDecryptedMessage = decryptedMessage.trim();
+
+    console.log(`Decrypted message: ${trimmedDecryptedMessage}`);
+
+    if (trimmedDecryptedMessage === message) {
         finishTime = Date.now();
         timeTaken = (finishTime - startTime) / 1000;
         const playerName = document.getElementById("player-name-text").value;
 
         alert(`
-            Game Finished!\n
+            Game finished!
+            Decrypted message matches with original message!
             Decrypted Message: ${decryptedMessage}
         `);
 
@@ -233,7 +364,7 @@ function displayLeaderboardHeader(leaderboard) {
         <th>No.</th>
         <th>Player Name</th>
         <th>Mode</th>
-        <th>Time Taken</th>
+        <th>Time Taken (seconds)</th>
         <th>Date & Time Played</th>
         </tr>`;
 
@@ -330,6 +461,7 @@ function getCurrentDateTime() {
     const year = d.getFullYear();
     let hour = d.getHours();
     const minute = d.getMinutes();
+    const second = d.getSeconds(); // Get the current seconds
 
     // Determine AM or PM
     const ampm = hour >= 12 ? 'PM' : 'AM';
@@ -338,10 +470,12 @@ function getCurrentDateTime() {
     hour = hour % 12; // Convert to 12-hour format
     hour = hour ? hour : 12; // The hour '0' should be '12'
 
-    // Pad minutes with leading zero if needed
+    // Pad minutes and seconds with leading zero if needed
     const formattedMinute = minute < 10 ? '0' + minute : minute;
+    const formattedSecond = second < 10 ? '0' + second : second; // Pad seconds
 
-    const formattedDateTime = `${dayOfMonth}/${month}/${year}, ${hour}:${formattedMinute} ${ampm}`;
+    // Construct the formatted date and time string including seconds
+    const formattedDateTime = `${dayOfMonth}/${month}/${year}, ${hour}:${formattedMinute}:${formattedSecond} ${ampm}`;
 
     return formattedDateTime;
 }
