@@ -92,7 +92,6 @@ const getRandPrime = (min, max, inputId) => {
     lastSelectedPrime = selectedPrime;
 };
 
-// Function to display Stage 1 UI
 function showStage1() {
     document.getElementById("stage-content").innerHTML = `
         <h2>Stage 1: Prime Number Selection</h2>
@@ -187,25 +186,6 @@ function gcd(a, b) {
     return b === 0 ? a : gcd(b, a % b);
 }
 
-function find_d() {
-    let result = 0;
-    let condition = true;
-    let time = 1;
-
-    while (condition) {
-        result = (phi * time) + 1;
-        result = result / e;
-        let resultInt = Number(result);
-
-        if (Number.isInteger(resultInt)) {
-            condition = false;
-        } else {
-            time += 1; // Increment time
-        }
-    }
-    return result;
-}
-
 function validateStage2() {
     let eInput = document.getElementById("public-e").value;
 
@@ -218,7 +198,6 @@ function validateStage2() {
 
     if (gcd(e, phi) === 1) {
         d = modInverse(e, phi);
-        // d = find_d()
         console.log("e: " + e);
         console.log("d: " + d);
         showStage3();
@@ -265,24 +244,20 @@ function encryptMessage() {
 }
 
 function showDValue() {
-    // Set the value of 'd' in the modal
     document.getElementById("d-value").innerText = `Value of private key 'd' for the chosen public key 'e' (${e}): ${d}`;
-
-    // Show the modal and overlay
+    
     document.getElementById("modal").style.display = "block";
     document.getElementById("overlay").style.display = "block";
 
-    // Copy to clipboard functionality
     document.getElementById("copy-button").onclick = function() {
-        // Create a temporary textarea element to hold the value
         const textarea = document.createElement("textarea");
-        textarea.value = d; // Set the value to 'd'
+        textarea.value = d;
         document.body.appendChild(textarea);
-        textarea.select(); // Select the text
-        document.execCommand("copy"); // Copy the text to clipboard
-        document.body.removeChild(textarea); // Remove the textarea
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
 
-        alert("Value copied to clipboard!"); // Notify the user
+        alert("Value copied to clipboard!");
 
         document.getElementById("modal").style.display = "none";
         document.getElementById("overlay").style.display = "none";
@@ -347,13 +322,21 @@ function decryptMessage() {
         alert(`
             Game finished!
             Decrypted message matches with original message!
-            Decrypted Message: ${decryptedMessage}
+            Decrypted Message: ${trimmedDecryptedMessage}
         `);
 
         addToLeaderboard(playerName, chosenMode, timeTaken.toFixed(2), getCurrentDateTime());
         resetGame();
     } else {
-        alert("Incorrect private key! Try again.");
+        alert(
+            `
+            Original Message: ${message}
+            Decrypted Message: ${trimmedDecryptedMessage}
+            Original and decrypted messages do not match.
+            Reason: Incorrect private key!
+            Please Try again!
+            `
+        );
     }
 }
 
@@ -458,24 +441,21 @@ function addToLeaderboard(playerName, chosenMode, timeTaken, currentDateTime) {
 function getCurrentDateTime() {
     const d = new Date();
     const dayOfMonth = d.getDate();
-    const month = d.getMonth() + 1; // Months are zero-based
+    const month = d.getMonth() + 1;
     const year = d.getFullYear();
     let hour = d.getHours();
     const minute = d.getMinutes();
-    const second = d.getSeconds(); // Get the current seconds
+    const second = d.getSeconds();
 
-    // Determine AM or PM
     const ampm = hour >= 12 ? 'PM' : 'AM';
 
-    // Convert to 12-hour format
-    hour = hour % 12; // Convert to 12-hour format
-    hour = hour ? hour : 12; // The hour '0' should be '12'
+    hour = hour % 12;
+    hour = hour ? hour : 12;
 
     // Pad minutes and seconds with leading zero if needed
     const formattedMinute = minute < 10 ? '0' + minute : minute;
-    const formattedSecond = second < 10 ? '0' + second : second; // Pad seconds
+    const formattedSecond = second < 10 ? '0' + second : second;
 
-    // Construct the formatted date and time string including seconds
     const formattedDateTime = `${dayOfMonth}/${month}/${year}, ${hour}:${formattedMinute}:${formattedSecond} ${ampm}`;
 
     return formattedDateTime;
